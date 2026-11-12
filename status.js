@@ -1,5 +1,5 @@
 // A página de retorno consulta aqui o status real do pedido (não confia no que vem na URL).
-const { J } = require('./_comum');
+const { J } = require('./_lib');
 exports.handler = async e => {
   try {
     const ref = String((e.queryStringParameters || {}).ref || '');

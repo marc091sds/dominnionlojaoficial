@@ -1,5 +1,5 @@
 // Entrega as fotos enviadas pelo painel.
-const { st } = require('./_dados');
+const { st } = require('./_lib');
 exports.handler = async e => {
   const k = String((e.queryStringParameters || {}).k || '');
   if (!/^[a-z0-9]+\.jpg$/.test(k)) return { statusCode: 400, body: 'x' };

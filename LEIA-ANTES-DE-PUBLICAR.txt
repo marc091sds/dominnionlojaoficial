@@ -1,0 +1,7 @@
+DOMINNION — PACOTE COM ESTRUTURA NETLIFY CORRIGIDA
+
+1) As funções de backend estão em netlify/functions/, exatamente como definido em netlify.toml.
+2) Não apague nem substitua suas variáveis de ambiente no Netlify. Em especial: MP_ACCESS_TOKEN, CEP_ORIGEM, SF_TOKEN (ou ME_TOKEN), ADMIN_SENHA e, se necessário, SITE_URL.
+3) O ZIP enviado para esta correção NÃO continha a pasta img/ com as fotos dos produtos. Antes de substituir um deploy existente, copie a pasta img/ original para a raiz deste pacote. Sem ela, as fotos referenciadas em catalogo.json não estarão disponíveis.
+4) Depois de publicar, teste primeiro o endpoint /.netlify/functions/config. Ele deve responder JSON com pagamento:true e frete:true.
+5) Em seguida, teste o cálculo de frete e só então um pedido real de baixo valor. Não compartilhe MP_ACCESS_TOKEN.

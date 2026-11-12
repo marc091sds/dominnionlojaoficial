@@ -1,6 +1,7 @@
 // Cria o pagamento no Mercado Pago (Checkout Pro: Pix, cartão e demais meios da sua conta).
-const { cat, J, pv, linhas, cotar } = require('./_comum');
+const { cat, J, pv, linhas, cotar } = require('./_lib');
 exports.handler = async e => {
+  if (e.httpMethod === 'GET') return J(200, { ok: true, pagamento: !!process.env.MP_ACCESS_TOKEN });   // teste: abra este endereço no navegador
   if (e.httpMethod !== 'POST') return J(405, { erro: 'Método inválido' });
   try {
     if (!process.env.MP_ACCESS_TOKEN) throw new Error('Pagamento não configurado');
@@ -22,8 +23,8 @@ exports.handler = async e => {
     };
     const r = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST', headers: { Authorization: 'Bearer ' + process.env.MP_ACCESS_TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    const d = await r.json();
-    if (!r.ok || !d.init_point) throw new Error('O Mercado Pago não aceitou o pedido');
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.init_point) { console.error('Mercado Pago recusou', r.status, JSON.stringify(d).slice(0, 600)); throw new Error('O Mercado Pago não aceitou o pedido' + (d.message ? ': ' + d.message : '')); }
     return J(200, { url: d.init_point, ref });
   } catch (err) { return J(400, { erro: err.message }); }
 };

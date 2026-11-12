@@ -1,4 +1,4 @@
-const { J, linhas, cotar } = require('./_comum');
+const { J, linhas, cotar } = require('./_lib');
 exports.handler = async e => {
   if (e.httpMethod !== 'POST') return J(405, { erro: 'Método inválido' });
   try {
