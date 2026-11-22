@@ -46,6 +46,12 @@ label .inp{margin-top:4px}
 .sticky{position:sticky;bottom:0;background:var(--bg);padding-top:12px;display:flex;gap:10px}.sticky .btn{flex:1}
 pre{white-space:pre-wrap;font:inherit;color:var(--mut);font-size:13.5px}
 .hidden{display:none!important}
+/* aba Feedbacks */
+.fbg{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px}
+.fbg .f{position:relative;width:96px}
+.fbg .ph{width:96px;height:128px;object-fit:cover;border-radius:10px;border:1px solid var(--line);background:#1b1c22}
+.fbg .f>button.x{position:absolute;top:-8px;right:-8px;width:30px;height:30px;border-radius:50%;background:var(--card);border:1px solid var(--bad);color:var(--bad)}
+.fbg .mvs{display:flex;gap:4px;margin-top:6px}.fbg .mvs button{flex:1;min-height:38px;border:1px solid var(--line);border-radius:8px}.fbg .mvs button:disabled{opacity:.35}
 </style>
 </head>
 <body>
@@ -63,7 +69,7 @@ pre{white-space:pre-wrap;font:inherit;color:var(--mut);font-size:13.5px}
 <!-- PAINEL -->
 <section id="vApp" class="hidden">
  <div class="top"><h1>Dominnion</h1><div><a class="btn sm" href="/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;text-decoration:none;color:inherit">Ver loja</a> <button class="btn sm" id="bSair">Sair</button></div></div>
- <div class="tabs"><button class="btn on" id="tProd">Produtos</button><button class="btn" id="tPed">Pedidos</button></div>
+ <div class="tabs"><button class="btn on" id="tProd">Produtos</button><button class="btn" id="tPed">Pedidos</button><button class="btn" id="tFeed">Feedbacks</button></div>
  <div id="eApp"></div>
  <div id="diag"></div>
 
@@ -72,6 +78,17 @@ pre{white-space:pre-wrap;font:inherit;color:var(--mut);font-size:13.5px}
   <div id="lProd"></div>
  </div>
  <div id="pPed" class="hidden"><div id="lPed"></div></div>
+ <div id="pFeed" class="hidden">
+  <p class="mut" style="margin-bottom:6px">Edite a seção <b>Feedbacks de clientes</b> da loja: título, subtítulo e as fotos (prints de conversas e depoimentos). Fotos em pé (3:4) ficam melhores.</p>
+  <div id="eFeed"></div>
+  <label>Título da seção<input class="inp" id="fbT" maxlength="60" placeholder="Feedbacks de clientes"></label>
+  <label>Subtítulo<input class="inp" id="fbS" maxlength="160" placeholder="Veja quem já comprou."></label>
+  <label class="chk"><input type="checkbox" id="fbMostrar" checked> Mostrar esta seção na loja</label>
+  <label>Fotos dos clientes <span id="fbCont" class="mut"></span></label>
+  <div class="fbg" id="fbLista"></div>
+  <button class="btn sm" id="fbAdd" style="margin-top:14px">+ Adicionar fotos</button>
+  <div class="sticky"><button class="btn pri" id="fbSalvar">Salvar feedbacks</button></div>
+ </div>
 </section>
 
 <!-- FORMULÁRIO DE PRODUTO -->
@@ -128,8 +145,8 @@ $('#bLogin').onclick=async()=>{const b=$('#bLogin');b.disabled=true;msg('#eLogin
   catch(e){msg('#eLogin',e.message,1)}b.disabled=false};
 $('#senha').addEventListener('keydown',e=>{if(e.key==='Enter')$('#bLogin').click()});
 $('#bSair').onclick=sair;
-$('#tProd').onclick=()=>aba('Prod');$('#tPed').onclick=()=>{aba('Ped');pedidos()};
-function aba(n){['Prod','Ped'].forEach(x=>{$('#t'+x).classList.toggle('on',x===n);$('#p'+x).classList.toggle('hidden',x!==n)})}
+$('#tProd').onclick=()=>aba('Prod');$('#tPed').onclick=()=>{aba('Ped');pedidos()};$('#tFeed').onclick=()=>{aba('Feed');feeds()};
+function aba(n){['Prod','Ped','Feed'].forEach(x=>{$('#t'+x).classList.toggle('on',x===n);$('#p'+x).classList.toggle('hidden',x!==n)})}
 
 /* ---------- PRODUTOS ---------- */
 async function carregar(){try{P=(await ap('listar')).produtos;lista();msg('#eApp','');
@@ -209,6 +226,36 @@ $('#lPed').addEventListener('click',async e=>{
   if(b.dataset.p==='cp'){const t=`Nome: ${c.nome}\nTelefone: ${c.tel}\nE-mail: ${c.email}\nEndereço: ${c.endereco}\nCidade/UF: ${c.cidade}\nCEP: ${o.cep}\nServiço escolhido: ${f.nome}\nConteúdo: ${(o.itens||[]).map(x=>x.q+'x '+x.nome).join(', ')}`;
     try{await navigator.clipboard.writeText(t);b.textContent='Copiado ✓'}catch(er){prompt('Copie os dados:',t)}}
   if(b.dataset.p==='sv'){const card=b.closest('.card');try{await ap('pedido',{ref:o.ref,enviado:card.querySelector('[data-p=env]').checked,rastreio:card.querySelector('[data-p=rast]').value});b.textContent='Salvo ✓'}catch(er){msg('#eApp',er.message,1)}}});
+
+
+/* ---------- FEEDBACKS DE CLIENTES (aba Feedbacks) ---------- */
+const BCF=(()=>{try{return new BroadcastChannel('dominnion')}catch(e){return null}})();
+let FB={fotos:[]};
+async function feeds(){
+  try{const s=(await ap('site_ler')).site||{};FB.fotos=[...(s.feedbacks||[])];
+    $('#fbT').value=s.feed_t||'';$('#fbS').value=s.feed_s||'';$('#fbMostrar').checked=!(s.secoes&&s.secoes.feed===false);
+    pintaFb();msg('#eFeed','')}catch(e){msg('#eFeed',e.message,1)}}
+function pintaFb(){
+  $('#fbLista').innerHTML=FB.fotos.map((u,i)=>`<div class="f"><img class="ph" src="${esc(u)}" alt="Feedback ${i+1}"><button class="x" data-fb="x" data-i="${i}" aria-label="Remover foto ${i+1}">✕</button><div class="mvs"><button data-fb="l" data-i="${i}" ${i?'':'disabled'} aria-label="Mover para a esquerda">←</button><button data-fb="r" data-i="${i}" ${i<FB.fotos.length-1?'':'disabled'} aria-label="Mover para a direita">→</button></div></div>`).join('')||'<p class="mut">Nenhuma foto ainda. Enquanto estiver vazio, a loja mostra os espaços padrão.</p>';
+  $('#fbAdd').classList.toggle('hidden',FB.fotos.length>=8);
+  $('#fbCont').textContent='('+FB.fotos.length+' de 8)'}
+$('#fbLista').addEventListener('click',e=>{const b=e.target.closest('[data-fb]');if(!b||b.disabled)return;const i=+b.dataset.i,a=b.dataset.fb,L=FB.fotos;
+  if(a==='x')L.splice(i,1);
+  else if(a==='l'&&i>0)[L[i-1],L[i]]=[L[i],L[i-1]];
+  else if(a==='r'&&i<L.length-1)[L[i+1],L[i]]=[L[i],L[i+1]];
+  pintaFb()});
+$('#fbAdd').onclick=()=>{const inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.multiple=true;
+  inp.onchange=async()=>{for(const f of [...inp.files].slice(0,8-FB.fotos.length)){msg('#eFeed','Enviando foto…');
+    try{FB.fotos.push((await ap('upload',{dados:await reduz(f)})).url);pintaFb();msg('#eFeed','')}catch(er){msg('#eFeed',er.message,1);break}}};
+  inp.click()};
+$('#fbSalvar').onclick=async()=>{const b=$('#fbSalvar');b.disabled=true;msg('#eFeed','Salvando…');
+  try{const cur=(await ap('site_ler')).site||{};            // lê o que já está salvo para não apagar mais nada da página
+    const novo={...cur,feedbacks:FB.fotos},t=$('#fbT').value.trim(),s=$('#fbS').value.trim();
+    if(t)novo.feed_t=t;else delete novo.feed_t;if(s)novo.feed_s=s;else delete novo.feed_s;
+    novo.secoes={...(cur.secoes||{}),feed:$('#fbMostrar').checked};
+    const r=(await ap('site_salvar',{site:novo})).site;FB.fotos=[...(r.feedbacks||[])];pintaFb();
+    BCF&&BCF.postMessage('mudou');msg('#eFeed','Feedbacks salvos. A loja atualiza sozinha em poucos segundos.')}
+  catch(e){msg('#eFeed',e.message,1)}b.disabled=false};
 
 if(tok)entrou();
 </script>
